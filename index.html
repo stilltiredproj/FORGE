@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a" id="theme-color-meta">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FORGE">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="FORGE — AI-powered workout tracker. Log workouts, build plans, and get coaching from GPT-4.">
+<title>FORGE — Workout Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --card-radius: 16px;
+    --accent: #e8f335;
+    --accent2: #ff4d1c;
+  }
+
+  /* DARK THEME (default) */
+  [data-theme="dark"], [data-theme="auto"] {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #222;
+    --text: #f0f0f0;
+    --muted: #666;
+    --shadow: rgba(0,0,0,0.4);
+    color-scheme: dark;
+  }
+
+  /* LIGHT THEME */
+  [data-theme="light"] {
+    --bg: #f4f4f0;
+    --surface: #ffffff;
+    --surface2: #eeeeea;
+    --border: #e0e0da;
+    --text: #111111;
+    --muted: #888888;
+    --shadow: rgba(0,0,0,0.08);
+    color-scheme: light;
+  }
+
+  /* AUTO: system preference */
+  @media (prefers-color-scheme: light) {
+    [data-theme="auto"] {
+      --bg: #f4f4f0;
+      --surface: #ffffff;
+      --surface2: #eeeeea;
+      --border: #e0e0da;
+      --text: #111111;
+      --muted: #888888;
+      --shadow: rgba(0,0,0,0.08);
+      color-scheme: light;
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ---- SIDEBAR (desktop) ---- */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    letter-spacing: 4px;
+    color: var(--accent);
+    padding: 0 24px 32px;
+    border-bottom: 1px solid var(--border);
+    line-height: 1;
+  }
+  .logo span { color: var(--text); }
+
+  .nav { padding: 24px 12px; flex: 1; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    transition: all 0.2s;
+    margin-bottom: 4px;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); background: rgba(232,243,53,0.08); }
+  .nav-item .icon { font-size: 1.1rem; width: 20px; text-align: center; }
+
+  /* ---- BOTTOM TAB BAR (mobile) ---- */
+  .bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 64px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 200;
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bottom-nav-inner {
+    display: flex;
+    height: 64px;
+    align-items: stretch;
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    padding: 4px 0;
+  }
+  .tab-item .tab-icon { font-size: 1.3rem; line-height: 1; }
+  .tab-item.active { color: var(--accent); }
+
+  /* ---- MOBILE TOP BAR ---- */
+  .mobile-topbar {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    z-index: 150;
+    align-items: center;
+    padding: 0 16px;
+    padding-top: env(safe-area-inset-top);
+  }
+  .mobile-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .mobile-logo span { color: var(--text); }
+
+  /* Main content */
+  .main {
+    margin-left: 220px;
+    padding: 32px 40px;
+    min-height: 100vh;
+  }
+
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Page header */
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    line-height: 1;
+    letter-spacing: 2px;
+  }
+  .page-subtitle { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-primary { background: var(--accent); color: #0a0a0a; }
+  .btn-primary:hover { background: #d4de2a; transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+  .btn-danger { background: rgba(255,77,28,0.1); color: var(--accent2); border: 1px solid rgba(255,77,28,0.2); }
+  .btn-danger:hover { background: rgba(255,77,28,0.2); }
+  .btn-ai { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+  .btn-ai:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-sm { padding: 8px 16px; font-size: 0.78rem; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 24px;
+  }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  /* Stat cards */
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.05;
+    transform: translate(20px, 20px);
+  }
+  .stat-label { font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; line-height: 1; color: var(--accent); }
+  .stat-unit { font-size: 0.9rem; color: var(--muted); margin-left: 4px; font-family: 'DM Sans', sans-serif; }
+  .stat-change { font-size: 0.75rem; color: #4ade80; margin-top: 8px; }
+
+  /* Forms */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input::placeholder { color: var(--muted); }
+  select.form-input { cursor: pointer; }
+  textarea.form-input { resize: vertical; min-height: 80px; }
+
+  /* Workout plan cards */
+  .plan-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .plan-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .plan-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .plan-card:hover::before { opacity: 1; }
+  .plan-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 1px; margin-bottom: 4px; }
+  .plan-meta { font-size: 0.78rem; color: var(--muted); display: flex; gap: 16px; margin-bottom: 12px; }
+  .plan-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .tag-strength { background: rgba(232,243,53,0.1); color: var(--accent); }
+  .tag-cardio { background: rgba(255,77,28,0.1); color: var(--accent2); }
+  .tag-hypertrophy { background: rgba(99,102,241,0.1); color: #818cf8; }
+  .tag-hiit { background: rgba(236,72,153,0.1); color: #f472b6; }
+  .tag-flexibility { background: rgba(52,211,153,0.1); color: #4ade80; }
+  .tag-full { background: rgba(251,191,36,0.1); color: #fbbf24; }
+
+  /* Exercise list */
+  .exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+  .exercise-item:hover { border-color: #333; }
+  .exercise-num {
+    width: 28px; height: 28px;
+    background: rgba(232,243,53,0.1);
+    color: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .exercise-info { flex: 1; }
+  .exercise-name { font-size: 0.9rem; font-weight: 600; }
+  .exercise-detail { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .exercise-actions { display: flex; gap: 8px; }
+
+  /* Log entries */
+  .log-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .log-date-block {
+    text-align: center;
+    min-width: 48px;
+  }
+  .log-day { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; line-height: 1; color: var(--accent); }
+  .log-month { font-size: 0.65rem; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; }
+  .log-divider { width: 1px; background: var(--border); align-self: stretch; }
+  .log-content { flex: 1; }
+  .log-workout-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .log-workout-meta { font-size: 0.78rem; color: var(--muted); display: flex; gap: 16px; }
+  .log-badge { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* AI Chat Panel */
+  .ai-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+  }
+  .ai-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ai-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .ai-title { font-weight: 700; font-size: 0.9rem; }
+  .ai-subtitle { font-size: 0.72rem; color: var(--muted); }
+  .ai-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .ai-msg {
+    max-width: 85%;
+    animation: fadeIn 0.3s ease;
+  }
+  .ai-msg.user { align-self: flex-end; }
+  .ai-msg.assistant { align-self: flex-start; }
+  .ai-msg-bubble {
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  .ai-msg.user .ai-msg-bubble { background: var(--accent); color: #0a0a0a; font-weight: 500; }
+  .ai-msg.assistant .ai-msg-bubble { background: var(--surface2); border: 1px solid var(--border); }
+  .ai-msg-bubble pre { white-space: pre-wrap; font-family: 'DM Sans', sans-serif; }
+  .ai-input-area {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+  }
+  .ai-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+    height: 46px;
+    max-height: 120px;
+  }
+  .ai-input:focus { border-color: #6366f1; }
+  .ai-apikey-notice {
+    background: rgba(99,102,241,0.08);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.82rem;
+    color: #a5b4fc;
+    line-height: 1.5;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    width: 560px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalIn 0.25s ease;
+  }
+  @media (max-width: 768px) {
+    .modal-overlay { align-items: flex-end; }
+    .modal {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 20px 20px 0 0;
+      max-height: 88vh;
+      padding: 24px 16px;
+    }
+  }
+  @keyframes modalIn { from { transform: scale(0.96) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 1px; }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; padding: 4px; }
+  .modal-close:hover { color: var(--text); }
+
+  /* Progress bar */
+  .progress-bar-wrap { background: var(--surface2); border-radius: 999px; height: 6px; }
+  .progress-bar { height: 6px; border-radius: 999px; background: var(--accent); transition: width 0.5s ease; }
+
+  /* Toast */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+  @media (max-width: 768px) {
+    .toast-container { bottom: calc(64px + env(safe-area-inset-bottom) + 12px); left: 16px; right: 16px; }
+    .toast { min-width: unset; }
+  }
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 0.83rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: toastIn 0.3s ease;
+    min-width: 240px;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .toast.success { border-left: 3px solid #4ade80; }
+  .toast.error { border-left: 3px solid var(--accent2); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 0.9rem; }
+
+  /* Week day strips */
+  .week-strip { display: flex; gap: 8px; margin-bottom: 24px; }
+  .week-day {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 6px;
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .week-day.today { border-color: var(--accent); color: var(--accent); background: rgba(232,243,53,0.05); }
+  .week-day.has-workout::after { content: '●'; display: block; color: var(--accent); font-size: 0.5rem; margin-top: 4px; }
+  .week-day .wd-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; line-height: 1.2; color: var(--text); }
+  .week-day.today .wd-num { color: var(--accent); }
+
+  /* API Key section */
+  .apikey-section {
+    background: rgba(99,102,241,0.06);
+    border: 1px solid rgba(99,102,241,0.15);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .apikey-label { font-size: 0.78rem; font-weight: 600; color: #a5b4fc; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    color: var(--muted);
+  }
+
+  /* Exercise builder rows */
+  .ex-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 80px auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .ex-row .form-input { padding: 10px 12px; font-size: 0.82rem; margin-bottom: 0; }
+
+  .highlight-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    color: var(--accent);
+  }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .mobile-topbar { display: flex; }
+    .bottom-nav { display: block; }
+
+    .main {
+      margin-left: 0;
+      padding: 16px;
+      padding-top: calc(52px + env(safe-area-inset-top) + 16px);
+      padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
+      min-height: 100vh;
+    }
+
+    .page-header { margin-bottom: 20px; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .page-title { font-size: 2.4rem; }
+
+    .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 14px; }
+    .grid-4 { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .stat-card { padding: 16px; }
+    .stat-value { font-size: 2rem; }
+    .card { padding: 16px; }
+
+    .ex-row { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+    .ex-row input:first-child { grid-column: 1 / -1; }
+    .ex-row button { grid-column: 1 / -1; }
+
+    .ai-panel { height: 72vh; }
+
+    .modal { padding: 20px; border-radius: 16px; }
+
+    .week-strip { gap: 4px; }
+    .week-day { padding: 8px 2px; font-size: 0.6rem; }
+    .week-day .wd-num { font-size: 1rem; }
+
+    .log-entry { padding: 14px; gap: 12px; }
+    .log-day { font-size: 1.6rem; }
+
+    .apikey-section { padding: 14px; }
+
+    .btn { min-height: 44px; }
+    .btn-sm { min-height: 36px; }
+    .form-input { font-size: 16px !important; }
+    .ai-input { font-size: 16px !important; }
+    .ai-grid { grid-template-columns: 1fr !important; }
+    .ai-panel { height: 60vh; }
+  }
+
+  @media (max-width: 400px) {
+    .stat-value { font-size: 1.7rem; }
+    .page-title { font-size: 2rem; }
+  }
+
+  /* Light mode: accent as text needs darker shade */
+  [data-theme="light"] .stat-value,
+  [data-theme="light"] .log-day,
+  [data-theme="light"] .highlight-number {
+    color: #7a8200;
+  }
+  [data-theme="light"] .logo,
+  [data-theme="light"] .mobile-logo {
+    color: #7a8200;
+  }
+  [data-theme="light"] .nav-item.active,
+  [data-theme="light"] .tab-item.active {
+    color: #7a8200;
+    background: rgba(120,130,0,0.08);
+  }
+  [data-theme="light"] .plan-card:hover {
+    border-color: #7a8200;
+    box-shadow: 0 4px 20px var(--shadow);
+  }
+  [data-theme="light"] .plan-card::before {
+    background: #7a8200;
+  }
+  [data-theme="light"] .exercise-num {
+    background: rgba(120,130,0,0.1);
+    color: #7a8200;
+  }
+  @media (prefers-color-scheme: light) {
+    [data-theme="auto"] .stat-value,
+    [data-theme="auto"] .log-day,
+    [data-theme="auto"] .highlight-number { color: #7a8200; }
+    [data-theme="auto"] .logo,
+    [data-theme="auto"] .mobile-logo { color: #7a8200; }
+    [data-theme="auto"] .nav-item.active,
+    [data-theme="auto"] .tab-item.active { color: #7a8200; background: rgba(120,130,0,0.08); }
+    [data-theme="auto"] .plan-card:hover { border-color: #7a8200; }
+    [data-theme="auto"] .plan-card::before { background: #7a8200; }
+    [data-theme="auto"] .exercise-num { background: rgba(120,130,0,0.1); color: #7a8200; }
+  }
+  /* Light mode form inputs */
+  [data-theme="light"] .form-input,
+  [data-theme="light"] .ai-input {
+    background: var(--surface2);
+    color: var(--text);
+  }
+  [data-theme="light"] select.form-input option {
+    background: var(--surface2);
+    color: var(--text);
+  }
+  @media (prefers-color-scheme: light) {
+    [data-theme="auto"] .form-input,
+    [data-theme="auto"] .ai-input { background: var(--surface2); color: var(--text); }
+  }
+
+
+  /* Theme toggle button */
+  .theme-toggle {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .theme-toggle:hover { border-color: var(--accent); }
+
+  /* Mobile topbar layout with toggle */
+  .mobile-topbar {
+    justify-content: space-between !important;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- Mobile top bar -->
+<div class="mobile-topbar">
+  <div class="mobile-logo">FORGE<span>.</span></div>
+  <button class="theme-toggle" onclick="cycleTheme()" id="theme-btn" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+</div>
+
+<!-- Mobile bottom nav -->
+<div class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <div class="tab-item active" onclick="showPage('dashboard')" id="tab-dashboard">
+      <span class="tab-icon">⚡</span><span>Home</span>
+    </div>
+    <div class="tab-item" onclick="showPage('plans')" id="tab-plans">
+      <span class="tab-icon">📋</span><span>Plans</span>
+    </div>
+    <div class="tab-item" onclick="showPage('log')" id="tab-log">
+      <span class="tab-icon">➕</span><span>Log</span>
+    </div>
+    <div class="tab-item" onclick="showPage('history')" id="tab-history">
+      <span class="tab-icon">📊</span><span>History</span>
+    </div>
+    <div class="tab-item" onclick="showPage('ai')" id="tab-ai">
+      <span class="tab-icon">🤖</span><span>AI</span>
+    </div>
+    <div class="tab-item" onclick="showPage('settings')" id="tab-settings">
+      <span class="tab-icon">⚙️</span><span>More</span>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="logo" style="display:flex;align-items:center;justify-content:space-between;">
+    <span>FORGE<span>.</span></span>
+    <button class="theme-toggle" onclick="cycleTheme()" id="theme-btn-sidebar" title="Toggle theme" aria-label="Toggle theme" style="font-size:1rem;">🌙</button>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="icon">⚡</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('plans')">
+      <span class="icon">📋</span> My Plans
+    </div>
+    <div class="nav-item" onclick="showPage('log')">
+      <span class="icon">📝</span> Log Workout
+    </div>
+    <div class="nav-item" onclick="showPage('history')">
+      <span class="icon">📊</span> History
+    </div>
+    <div class="nav-item" onclick="showPage('ai')">
+      <span class="icon">🤖</span> AI Coach
+    </div>
+    <div class="nav-item" onclick="showPage('settings')">
+      <span class="icon">⚙️</span> Settings
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="page-header">
+      <div>
+        <div class="page-title">DASHBOARD</div>
+        <div class="page-subtitle" id="dash-date"></div>
+      </div>
+      <button class="btn btn-primary" onclick="showPage('log')">+ Log Workout</button>
+    </div>
+
+    <!-- Week strip -->
+    <div class="week-strip" id="week-strip"></div>
+
+    <!-- Stats -->
+    <div class="grid-4" style="margin-bottom: 24px;">
+      <div class="stat-card">
+        <div class="stat-label">This Week</div>
+        <div class="stat-value" id="stat-week">0 <span class="stat-unit">workouts</span></div>
+        <div class="stat-change" id="stat-week-sub">Keep going!</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Sessions</div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-change">All time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Duration</div>
+        <div class="stat-value" id="stat-avg">0 <span class="stat-unit">min</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Streak</div>
+        <div class="stat-value" id="stat-streak">0 <span class="stat-unit">days</span></div>
+        <div class="stat-change">🔥</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title">RECENT WORKOUTS</div>
+        <div id="dash-recent"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">MY PLANS</div>
+        <div id="dash-plans"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLANS -->
+  <div id="page-plans" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">MY PLANS</div>
+        <div class="page-subtitle">Build and manage your workout programs</div>
+      </div>
+      <button class="btn btn-primary" onclick="openCreatePlan()">+ New Plan</button>
+    </div>
+    <div id="plans-grid" class="grid-3"></div>
+  </div>
+
+  <!-- LOG WORKOUT -->
+  <div id="page-log" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">LOG WORKOUT</div>
+        <div class="page-subtitle">Track today's session</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Workout Name</label>
+            <input class="form-input" id="log-name" placeholder="e.g. Push Day A" />
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input class="form-input" id="log-date" type="date" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duration (min)</label>
+              <input class="form-input" id="log-duration" type="number" placeholder="60" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Load from Plan</label>
+            <select class="form-input" id="log-plan-select" onchange="loadPlanExercises()">
+              <option value="">— Select a plan —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Feeling</label>
+            <select class="form-input" id="log-feeling">
+              <option value="💪 Beast Mode">💪 Beast Mode</option>
+              <option value="😊 Great">😊 Great</option>
+              <option value="😐 Average">😐 Average</option>
+              <option value="😓 Tough">😓 Tough</option>
+              <option value="🔥 Personal Best">🔥 Personal Best</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-input" id="log-notes" placeholder="How did it go?"></textarea>
+          </div>
+          <button class="btn btn-primary" style="width:100%" onclick="saveLog()">Save Session</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div class="section-title" style="margin:0">EXERCISES</div>
+          <button class="btn btn-ghost btn-sm" onclick="addLogExercise()">+ Add</button>
+        </div>
+        <div id="log-exercises"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="page-history" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">HISTORY</div>
+        <div class="page-subtitle">Your workout journal</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="clearHistory()">Clear All</button>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- AI COACH -->
+  <div id="page-ai" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">AI COACH</div>
+        <div class="page-subtitle">Powered by GPT-4 — your personal trainer</div>
+      </div>
+    </div>
+
+    <div class="apikey-section" id="apikey-section">
+      <div class="apikey-label">🔑 OpenAI API Key</div>
+      <div style="display:flex;gap:12px;">
+        <input class="form-input" id="apikey-input" type="password" placeholder="sk-..." style="margin:0;flex:1;" />
+        <button class="btn btn-ai btn-sm" onclick="saveApiKey()" style="white-space:nowrap;">Save Key</button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:8px;">Your key is stored locally in the browser. Never shared.</div>
+    </div>
+
+    <div class="grid-2 ai-grid" style="align-items: start;">
+      <div class="ai-panel">
+        <div class="ai-header">
+          <div class="ai-icon">🤖</div>
+          <div>
+            <div class="ai-title">FORGE AI Coach</div>
+            <div class="ai-subtitle">Ask anything about training, nutrition, recovery</div>
+          </div>
+        </div>
+        <div class="ai-messages" id="ai-messages">
+          <div class="ai-msg assistant">
+            <div class="ai-msg-bubble">Hey! I'm your AI fitness coach. I can create personalized workout plans, give form tips, help with nutrition, and more. What are your goals? 💪</div>
+          </div>
+        </div>
+        <div class="ai-input-area">
+          <textarea class="ai-input" id="ai-input" placeholder="Ask your coach..." onkeydown="aiKeyDown(event)"></textarea>
+          <button class="btn btn-ai" id="ai-send-btn" onclick="sendAiMessage()" style="height:46px;padding:0 16px;">
+            <span id="ai-send-label">Send</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="section-title">QUICK PROMPTS</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-ghost" style="justify-content:flex-start;text-align:left;" onclick="setAiPrompt('Create a 4-day push/pull/legs split workout plan for intermediate lifters focused on hypertrophy.')">📋 4-Day PPL Plan</button>
+            <button class="btn btn-ghost" style="justify-content:flex-start;text-align:left;" onclick="setAiPrompt('Create a beginner full-body 3-day workout program with compound movements.')">🏋️ Beginner Full Body</button>
+            <button class="btn btn-ghost" style="justify-content:flex-start;text-align:left;" onclick="setAiPrompt('Design a 30-minute HIIT workout I can do at home with no equipment.')">🔥 Home HIIT Workout</button>
+            <button class="btn btn-ghost" style="justify-content:flex-start;text-align:left;" onclick="setAiPrompt('What should I eat before and after my workouts for optimal performance and recovery?')">🥗 Nutrition Guide</button>
+            <button class="btn btn-ghost" style="justify-content:flex-start;text-align:left;" onclick="setAiPrompt('Create a 5/3/1 powerlifting program template for strength building.')">💪 5/3/1 Powerlifting</button>
+            <button class="btn btn-ghost" style="justify-content:flex-start;text-align:left;" onclick="setAiPrompt('Give me a progressive overload strategy for bench press to add 50lbs in 6 months.')">📈 Progressive Overload</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">IMPORT AI PLAN</div>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;line-height:1.6;">Ask the AI to generate a plan, then click below to extract and save it to My Plans.</p>
+          <button class="btn btn-primary" style="width:100%" onclick="importAiPlan()">⚡ Extract & Save Last Plan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">SETTINGS</div>
+        <div class="page-subtitle">Configure your experience</div>
+      </div>
+    </div>
+    <div style="max-width: 520px;">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title">PROFILE</div>
+        <div class="form-group">
+          <label class="form-label">Your Name</label>
+          <input class="form-input" id="set-name" placeholder="Athlete" />
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Weight (kg)</label>
+            <input class="form-input" id="set-weight" type="number" placeholder="80" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Height (cm)</label>
+            <input class="form-input" id="set-height" type="number" placeholder="178" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fitness Goal</label>
+          <select class="form-input" id="set-goal">
+            <option>Build Muscle</option>
+            <option>Lose Fat</option>
+            <option>Increase Strength</option>
+            <option>Improve Endurance</option>
+            <option>General Fitness</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Profile</button>
+      </div>
+
+      <div class="card">
+        <div class="section-title">DATA</div>
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;">All your data is stored locally in your browser.</p>
+        <button class="btn btn-danger" onclick="clearAllData()">🗑 Clear All Data</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PLAN DETAIL MODAL -->
+<div class="modal-overlay" id="plan-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="plan-modal-title">Plan Detail</div>
+      <button class="modal-close" onclick="closeModal('plan-modal')">✕</button>
+    </div>
+    <div id="plan-modal-body"></div>
+  </div>
+</div>
+
+<!-- CREATE PLAN MODAL -->
+<div class="modal-overlay" id="create-plan-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">NEW PLAN</div>
+      <button class="modal-close" onclick="closeModal('create-plan-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Plan Name</label>
+      <input class="form-input" id="new-plan-name" placeholder="e.g. 5-Day Hypertrophy Split" />
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Days per Week</label>
+        <select class="form-input" id="new-plan-days">
+          <option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Focus</label>
+        <select class="form-input" id="new-plan-focus">
+          <option>Strength</option>
+          <option>Hypertrophy</option>
+          <option>Cardio</option>
+          <option>HIIT</option>
+          <option>Flexibility</option>
+          <option>Full Body</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-input" id="new-plan-desc" placeholder="What's this plan about?"></textarea>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="section-title" style="margin:0">EXERCISES</div>
+      <button class="btn btn-ghost btn-sm" onclick="addPlanExercise()">+ Add Exercise</button>
+    </div>
+    <div id="new-plan-exercises"></div>
+
+    <div style="display:flex;gap:12px;margin-top:24px;">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('create-plan-modal')">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="savePlan()">Save Plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ============================================================
+// DATA LAYER
+// ============================================================
+let plans = JSON.parse(localStorage.getItem('fg_plans') || '[]');
+let logs = JSON.parse(localStorage.getItem('fg_logs') || '[]');
+let settings = JSON.parse(localStorage.getItem('fg_settings') || '{}');
+let apiKey = localStorage.getItem('fg_apikey') || '';
+let aiHistory = [];
+
+function save() {
+  localStorage.setItem('fg_plans', JSON.stringify(plans));
+  localStorage.setItem('fg_logs', JSON.stringify(logs));
+  localStorage.setItem('fg_settings', JSON.stringify(settings));
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const navItems = document.querySelectorAll('.nav-item');
+  const labels = ['dashboard','plans','log','history','ai','settings'];
+  navItems[labels.indexOf(id)]?.classList.add('active');
+  const tabEl = document.getElementById('tab-' + id);
+  if (tabEl) tabEl.classList.add('active');
+  // Scroll to top on mobile
+  window.scrollTo(0, 0);
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'plans') renderPlans();
+  if (id === 'history') renderHistory();
+  if (id === 'log') setupLog();
+  if (id === 'ai') setupAi();
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = (type === 'success' ? '✅' : '❌') + ' ' + msg;
+  t.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const now = new Date();
+  document.getElementById('dash-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Week strip
+  const strip = document.getElementById('week-strip');
+  strip.innerHTML = '';
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const today = now.getDay();
+  const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - today);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfWeek); d.setDate(startOfWeek.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const hasLog = logs.some(l => l.date === dateStr);
+    const isToday = i === today;
+    const el = document.createElement('div');
+    el.className = 'week-day' + (isToday ? ' today' : '') + (hasLog ? ' has-workout' : '');
+    el.innerHTML = `${days[i]}<div class="wd-num">${d.getDate()}</div>`;
+    strip.appendChild(el);
+  }
+
+  // Stats
+  const weekStart = startOfWeek.toISOString().split('T')[0];
+  const weekEnd = now.toISOString().split('T')[0];
+  const weekLogs = logs.filter(l => l.date >= weekStart && l.date <= weekEnd);
+  document.getElementById('stat-week').innerHTML = `${weekLogs.length} <span class="stat-unit">workouts</span>`;
+  document.getElementById('stat-total').textContent = logs.length;
+  const avgDur = logs.length ? Math.round(logs.reduce((a, l) => a + (parseInt(l.duration) || 0), 0) / logs.length) : 0;
+  document.getElementById('stat-avg').innerHTML = `${avgDur} <span class="stat-unit">min</span>`;
+
+  // Streak
+  let streak = 0;
+  let check = new Date(now);
+  while (true) {
+    const ds = check.toISOString().split('T')[0];
+    if (logs.some(l => l.date === ds)) { streak++; check.setDate(check.getDate() - 1); }
+    else break;
+  }
+  document.getElementById('stat-streak').innerHTML = `${streak} <span class="stat-unit">days</span>`;
+
+  // Recent
+  const recentEl = document.getElementById('dash-recent');
+  const recent = [...logs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+  if (!recent.length) { recentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No workouts logged yet</p></div>'; }
+  else {
+    recentEl.innerHTML = recent.map(l => {
+      const d = new Date(l.date + 'T00:00:00');
+      return `<div class="log-entry" style="margin-bottom:10px;">
+        <div class="log-date-block">
+          <div class="log-day">${d.getDate()}</div>
+          <div class="log-month">${d.toLocaleString('en-US', {month:'short'})}</div>
+        </div>
+        <div class="log-divider"></div>
+        <div class="log-content">
+          <div class="log-workout-name">${l.name}</div>
+          <div class="log-workout-meta">
+            <span>⏱ ${l.duration || '?'} min</span>
+            <span>${l.feeling || ''}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Plans
+  const plansEl = document.getElementById('dash-plans');
+  if (!plans.length) { plansEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>No plans yet</p></div>'; }
+  else {
+    plansEl.innerHTML = plans.slice(0, 3).map((p, i) => `
+      <div class="exercise-item" onclick="viewPlan(${i})" style="cursor:pointer;">
+        <div class="exercise-num">${p.days || '?'}</div>
+        <div class="exercise-info">
+          <div class="exercise-name">${p.name}</div>
+          <div class="exercise-detail">${p.focus || ''} · ${(p.exercises||[]).length} exercises</div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// ============================================================
+// PLANS
+// ============================================================
+function renderPlans() {
+  const grid = document.getElementById('plans-grid');
+  if (!plans.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📋</div><p>No plans yet. Create your first workout plan!</p></div>';
+    return;
+  }
+  grid.innerHTML = plans.map((p, i) => `
+    <div class="plan-card" onclick="viewPlan(${i})">
+      <div class="plan-name">${p.name}</div>
+      <div class="plan-meta">
+        <span>📅 ${p.days} days/wk</span>
+        <span>🏋️ ${(p.exercises||[]).length} exercises</span>
+      </div>
+      <div class="plan-tags">
+        <span class="tag tag-${(p.focus||'').toLowerCase().replace(' ','-')}">${p.focus || 'General'}</span>
+      </div>
+      ${p.desc ? `<p style="font-size:0.78rem;color:var(--muted);margin-top:10px;line-height:1.5;">${p.desc}</p>` : ''}
+    </div>
+  `).join('');
+}
+
+function openCreatePlan() {
+  document.getElementById('new-plan-name').value = '';
+  document.getElementById('new-plan-desc').value = '';
+  document.getElementById('new-plan-exercises').innerHTML = '';
+  addPlanExercise();
+  document.getElementById('create-plan-modal').classList.add('open');
+}
+
+function addPlanExercise(ex = {}) {
+  const container = document.getElementById('new-plan-exercises');
+  const idx = container.children.length;
+  const div = document.createElement('div');
+  div.className = 'ex-row';
+  div.innerHTML = `
+    <input class="form-input" placeholder="Exercise name" value="${ex.name||''}" />
+    <input class="form-input" placeholder="Sets" type="number" value="${ex.sets||''}" />
+    <input class="form-input" placeholder="Reps" value="${ex.reps||''}" />
+    <input class="form-input" placeholder="Rest(s)" type="number" value="${ex.rest||''}" />
+    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function savePlan() {
+  const name = document.getElementById('new-plan-name').value.trim();
+  if (!name) { toast('Enter a plan name', 'error'); return; }
+  const exRows = document.querySelectorAll('#new-plan-exercises .ex-row');
+  const exercises = [];
+  exRows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    if (inputs[0].value.trim()) {
+      exercises.push({ name: inputs[0].value, sets: inputs[1].value, reps: inputs[2].value, rest: inputs[3].value });
+    }
+  });
+  plans.push({
+    name,
+    days: document.getElementById('new-plan-days').value,
+    focus: document.getElementById('new-plan-focus').value,
+    desc: document.getElementById('new-plan-desc').value,
+    exercises,
+    created: new Date().toISOString()
+  });
+  save();
+  closeModal('create-plan-modal');
+  renderPlans();
+  toast('Plan saved!');
+}
+
+function viewPlan(i) {
+  const p = plans[i];
+  document.getElementById('plan-modal-title').textContent = p.name;
+  document.getElementById('plan-modal-body').innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <span class="tag tag-${(p.focus||'').toLowerCase().replace(' ','-')}">${p.focus}</span>
+      <span style="font-size:0.78rem;color:var(--muted);">📅 ${p.days} days/week</span>
+    </div>
+    ${p.desc ? `<p style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;line-height:1.6;">${p.desc}</p>` : ''}
+    <div class="section-title">EXERCISES</div>
+    ${(p.exercises||[]).map((e, n) => `
+      <div class="exercise-item">
+        <div class="exercise-num">${n+1}</div>
+        <div class="exercise-info">
+          <div class="exercise-name">${e.name}</div>
+          <div class="exercise-detail">${e.sets ? e.sets + ' sets' : ''} ${e.reps ? '× ' + e.reps : ''} ${e.rest ? '· ' + e.rest + 's rest' : ''}</div>
+        </div>
+      </div>
+    `).join('')}
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-primary" style="flex:1" onclick="startFromPlan(${i})">Start Workout</button>
+      <button class="btn btn-danger" onclick="deletePlan(${i})">Delete</button>
+    </div>
+  `;
+  document.getElementById('plan-modal').classList.add('open');
+}
+
+function deletePlan(i) {
+  plans.splice(i, 1);
+  save();
+  closeModal('plan-modal');
+  renderPlans();
+  toast('Plan deleted');
+}
+
+function startFromPlan(i) {
+  closeModal('plan-modal');
+  showPage('log');
+  setTimeout(() => {
+    document.getElementById('log-plan-select').value = i;
+    loadPlanExercises();
+    document.getElementById('log-name').value = plans[i].name;
+  }, 50);
+}
+
+// ============================================================
+// LOG WORKOUT
+// ============================================================
+function setupLog() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('log-date').value = today;
+
+  const sel = document.getElementById('log-plan-select');
+  sel.innerHTML = '<option value="">— Select a plan —</option>';
+  plans.forEach((p, i) => { sel.innerHTML += `<option value="${i}">${p.name}</option>`; });
+
+  if (!document.getElementById('log-exercises').children.length) {
+    addLogExercise();
+  }
+}
+
+function loadPlanExercises() {
+  const i = document.getElementById('log-plan-select').value;
+  if (i === '') return;
+  const plan = plans[parseInt(i)];
+  const container = document.getElementById('log-exercises');
+  container.innerHTML = '';
+  plan.exercises.forEach(ex => addLogExercise(ex));
+  document.getElementById('log-name').value = plan.name;
+}
+
+function addLogExercise(ex = {}) {
+  const container = document.getElementById('log-exercises');
+  const div = document.createElement('div');
+  div.className = 'ex-row';
+  div.style.gridTemplateColumns = '1fr 70px 80px 80px auto';
+  div.innerHTML = `
+    <input class="form-input" placeholder="Exercise" value="${ex.name||''}" />
+    <input class="form-input" placeholder="Sets" type="number" value="${ex.sets||''}" />
+    <input class="form-input" placeholder="Reps" value="${ex.reps||''}" />
+    <input class="form-input" placeholder="Weight" value="${ex.weight||''}" />
+    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function saveLog() {
+  const name = document.getElementById('log-name').value.trim();
+  const date = document.getElementById('log-date').value;
+  if (!name || !date) { toast('Fill in workout name and date', 'error'); return; }
+
+  const exRows = document.querySelectorAll('#log-exercises .ex-row');
+  const exercises = [];
+  exRows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    if (inputs[0].value.trim()) {
+      exercises.push({ name: inputs[0].value, sets: inputs[1].value, reps: inputs[2].value, weight: inputs[3].value });
+    }
+  });
+
+  logs.unshift({
+    name,
+    date,
+    duration: document.getElementById('log-duration').value,
+    feeling: document.getElementById('log-feeling').value,
+    notes: document.getElementById('log-notes').value,
+    exercises,
+    id: Date.now()
+  });
+  save();
+
+  // Reset
+  document.getElementById('log-name').value = '';
+  document.getElementById('log-duration').value = '';
+  document.getElementById('log-notes').value = '';
+  document.getElementById('log-exercises').innerHTML = '';
+  document.getElementById('log-plan-select').value = '';
+  addLogExercise();
+
+  toast('Workout logged! 💪');
+  showPage('history');
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!logs.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No workouts logged yet</p></div>';
+    return;
+  }
+  el.innerHTML = logs.map((l, i) => {
+    const d = new Date(l.date + 'T00:00:00');
+    return `
+      <div class="log-entry">
+        <div class="log-date-block">
+          <div class="log-day">${d.getDate()}</div>
+          <div class="log-month">${d.toLocaleString('en-US', {month:'short', year:'numeric'})}</div>
+        </div>
+        <div class="log-divider"></div>
+        <div class="log-content" style="flex:1;">
+          <div class="log-workout-name">${l.name}</div>
+          <div class="log-workout-meta" style="margin-bottom:8px;">
+            <span>⏱ ${l.duration || '?'} min</span>
+            <span>${l.feeling || ''}</span>
+            <span>🏋️ ${(l.exercises||[]).length} exercises</span>
+          </div>
+          ${l.notes ? `<div style="font-size:0.78rem;color:var(--muted);font-style:italic;">"${l.notes}"</div>` : ''}
+          ${(l.exercises||[]).length ? `
+            <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
+              ${l.exercises.map(e => `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:0.72rem;">${e.name} ${e.sets ? e.sets+'×' : ''}${e.reps || ''} ${e.weight ? '@'+e.weight+'kg' : ''}</span>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteLog(${i})" style="align-self:flex-start;">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function deleteLog(i) {
+  logs.splice(i, 1);
+  save();
+  renderHistory();
+  toast('Entry removed');
+}
+
+function clearHistory() {
+  if (!confirm('Delete all workout history?')) return;
+  logs = [];
+  save();
+  renderHistory();
+}
+
+// ============================================================
+// AI COACH
+// ============================================================
+function setupAi() {
+  if (apiKey) {
+    document.getElementById('apikey-input').value = '••••••••' + apiKey.slice(-4);
+  }
+}
+
+function saveApiKey() {
+  const val = document.getElementById('apikey-input').value.trim();
+  if (!val || val.startsWith('•')) { toast('Enter a valid API key', 'error'); return; }
+  apiKey = val;
+  localStorage.setItem('fg_apikey', apiKey);
+  document.getElementById('apikey-input').value = '••••••••' + apiKey.slice(-4);
+  toast('API key saved!');
+}
+
+function setAiPrompt(text) {
+  document.getElementById('ai-input').value = text;
+  document.getElementById('ai-input').focus();
+}
+
+function aiKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage(); }
+}
+
+async function sendAiMessage() {
+  if (!apiKey) { toast('Enter your OpenAI API key first', 'error'); return; }
+  const input = document.getElementById('ai-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  appendAiMessage('user', msg);
+  input.value = '';
+  aiHistory.push({ role: 'user', content: msg });
+
+  const btn = document.getElementById('ai-send-btn');
+  const label = document.getElementById('ai-send-label');
+  btn.disabled = true;
+  label.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are FORGE AI, an expert fitness coach and personal trainer. You create detailed workout plans, give training advice, nutrition tips, and help users achieve their fitness goals. When creating workout plans, format them clearly with exercise names, sets, reps, and rest periods. Be motivating and professional.' },
+          ...aiHistory
+        ],
+        max_tokens: 1500
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const reply = data.choices[0].message.content;
+    aiHistory.push({ role: 'assistant', content: reply });
+    appendAiMessage('assistant', reply);
+  } catch (err) {
+    appendAiMessage('assistant', '❌ Error: ' + err.message);
+  }
+
+  btn.disabled = false;
+  label.textContent = 'Send';
+}
+
+function appendAiMessage(role, text) {
+  const container = document.getElementById('ai-messages');
+  const div = document.createElement('div');
+  div.className = `ai-msg ${role}`;
+  div.innerHTML = `<div class="ai-msg-bubble">${text.replace(/\n/g, '<br>')}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function importAiPlan() {
+  const lastAi = [...aiHistory].reverse().find(m => m.role === 'assistant');
+  if (!lastAi) { toast('No AI response to import', 'error'); return; }
+
+  // Parse simple plan from AI response
+  const text = lastAi.content;
+  const lines = text.split('\n').filter(l => l.trim());
+  const exercises = [];
+
+  lines.forEach(line => {
+    // Look for exercise patterns like "1. Bench Press - 3 sets x 10 reps"
+    const match = line.match(/^\d+[\.\)]\s+(.+?)(?:\s[-–:]\s*(\d+)\s*(?:sets?)?.*?[x×]\s*(\d+[-\d]*)\s*(?:reps?)?)?/i);
+    if (match && match[1] && !match[1].toLowerCase().includes('day') && match[1].length < 60) {
+      exercises.push({
+        name: match[1].replace(/\*+/g, '').trim(),
+        sets: match[2] || '3',
+        reps: match[3] || '10',
+        rest: '60'
+      });
+    }
+  });
+
+  // Try to extract plan name
+  const titleMatch = text.match(/^#+\s*(.+)|^([A-Z][A-Za-z\s]+(?:Plan|Program|Split|Workout))/m);
+  const planName = titleMatch ? (titleMatch[1] || titleMatch[2]).trim() : 'AI Generated Plan';
+
+  if (!exercises.length) {
+    toast('Could not extract exercises. Try asking for a numbered list.', 'error');
+    return;
+  }
+
+  plans.push({
+    name: planName,
+    days: 4,
+    focus: 'Hypertrophy',
+    desc: 'Generated by AI Coach',
+    exercises: exercises.slice(0, 20),
+    created: new Date().toISOString()
+  });
+  save();
+  toast(`Imported "${planName}" with ${exercises.length} exercises!`);
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function saveSettings() {
+  settings.name = document.getElementById('set-name').value;
+  settings.weight = document.getElementById('set-weight').value;
+  settings.height = document.getElementById('set-height').value;
+  settings.goal = document.getElementById('set-goal').value;
+  save();
+  toast('Profile saved!');
+}
+
+function clearAllData() {
+  if (!confirm('This will delete all plans and workout history. Continue?')) return;
+  plans = []; logs = []; settings = {};
+  save();
+  toast('All data cleared');
+  renderDashboard();
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// ============================================================
+// INIT
+// ============================================================
+// Load settings into form
+if (settings.name) document.getElementById('set-name').value = settings.name;
+if (settings.weight) document.getElementById('set-weight').value = settings.weight;
+if (settings.height) document.getElementById('set-height').value = settings.height;
+if (settings.goal) document.getElementById('set-goal').value = settings.goal;
+
+renderDashboard();
+setupLog();
+
+// ============================================================
+// THEME
+// ============================================================
+const THEMES = ['auto', 'dark', 'light'];
+const THEME_ICONS = { auto: '🌓', dark: '🌙', light: '☀️' };
+const THEME_COLORS = { dark: '#0a0a0a', light: '#f4f4f0', auto: '#0a0a0a' };
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('fg_theme', theme);
+  const icon = THEME_ICONS[theme];
+  document.querySelectorAll('.theme-toggle').forEach(b => b.textContent = icon);
+  // Update theme-color meta for browser chrome
+  const meta = document.getElementById('theme-color-meta');
+  if (meta) {
+    let color = THEME_COLORS[theme];
+    if (theme === 'auto') {
+      color = window.matchMedia('(prefers-color-scheme: light)').matches ? '#f4f4f0' : '#0a0a0a';
+    }
+    meta.setAttribute('content', color);
+  }
+}
+
+function cycleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'auto';
+  const next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length];
+  applyTheme(next);
+}
+
+// Init theme from storage
+const savedTheme = localStorage.getItem('fg_theme') || 'auto';
+applyTheme(savedTheme);
+
+// Listen for system preference changes when in auto mode
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if ((localStorage.getItem('fg_theme') || 'auto') === 'auto') applyTheme('auto');
+});
+
+</script>
+</body>
+</html>
