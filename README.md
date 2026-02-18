@@ -2,16 +2,6 @@
 
 AI-powered workout tracker. Log workouts, build plans, and get coaching from GPT-4.
 
-## Deploy to GitHub Pages
-
-1. Create a new GitHub repository (public)
-2. Upload these files to the repo root:
-   - `workout-tracker.html` → rename to `index.html`
-   - `manifest.json`
-   - `_config.yml`
-3. Go to **Settings → Pages → Source → Deploy from branch → main → / (root)**
-4. Your app will be live at `https://yourusername.github.io/your-repo/`
-
 ## Features
 
 - 📋 **Plans** — Create workout programs with exercises, sets, reps, rest
